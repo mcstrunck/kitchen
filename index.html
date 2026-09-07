@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0E1E24">
+<title>Kitchen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:ital,wdth,wght@0,62..125,400..700;1,62..125,400..700&display=swap" rel="stylesheet">
+<style>
+/* ────────────────────────────────────────────────
+   Kitchen board — Kitsilano
+   ──────────────────────────────────────────────── */
+:root{
+  --base:      #0E1E24;
+  --panel:     #162C34;
+  --edge:      #23444E;
+  --sea:       #2E6E7E;
+  --sea-deep:  #1B4854;
+  --sand:      #E8DFCE;
+  --sand-dim:  #93A7AC;
+  --amber:     #F0A868;
+  --marion:    #7FC9C0;
+  --aaron:     #E5849B;
+
+  /* Calendar blocks sit a step lighter than the other cards */
+  --panel-lit: #22404B;
+  --edge-lit:  #38606D;
+
+  /* Bin streams — matched to the real bin lids */
+  --bin-green:   #4B8B37;
+  --bin-garbage: #15191B;
+  --bin-glass:   #6E7C82;
+  --bin-recycle: #2C6FB5;
+
+  --gap: clamp(10px, 1.4vh, 20px);
+  --pad: clamp(14px, 2vh, 28px);
+  --r: 14px;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{
+  background:var(--base);
+  color:var(--sand);
+  font-family:"Archivo",system-ui,-apple-system,sans-serif;
+  font-variant-numeric:tabular-nums;
+  font-feature-settings:"tnum" 1;
+  -webkit-font-smoothing:antialiased;
+  -webkit-user-select:none; user-select:none;
+  -webkit-touch-callout:none;
+  transition:opacity .8s ease;
+}
+body.night{opacity:.62}
+
+.board{
+  height:100dvh;
+  padding:var(--pad);
+  padding-top:max(var(--pad), env(safe-area-inset-top));
+  padding-bottom:max(var(--pad), env(safe-area-inset-bottom));
+  display:grid;
+  grid-template-columns:1fr 1fr minmax(215px, 22%);
+  grid-template-rows:auto auto minmax(0,1fr) auto;
+  grid-template-areas:
+    "banner banner banner"
+    "head   head   head"
+    "calA   calB   rail"
+    "tide   tide   tide";
+  gap:var(--gap);
+}
+
+/* Shared block shell */
+.card{
+  background:var(--panel);
+  border-radius:var(--r);
+  padding:clamp(11px,1.6vh,19px);
+  display:flex;flex-direction:column;
+  min-height:0;
+}
+.card h2{
+  font-size:clamp(10px,1.4vh,13px);
+  font-variation-settings:"wdth" 100,"wght" 600;
+  color:var(--sand-dim);
+  margin-bottom:.7em;
+  text-transform:uppercase;
+  letter-spacing:.11em;
+}
+
+/* ── Bins banner (day before + day of only) ──── */
+.banner{
+  grid-area:banner;
+  display:none;
+  align-items:center; gap:.7em; flex-wrap:wrap;
+  background:var(--amber); color:var(--base);
+  border-radius:var(--r);
+  padding:clamp(8px,1.2vh,15px) clamp(14px,1.8vh,22px);
+}
+.banner.show{display:flex}
+.banner .label{
+  font-size:clamp(11px,1.6vh,16px);
+  font-variation-settings:"wdth" 100,"wght" 700;
+  text-transform:uppercase; letter-spacing:.13em;
+  border-right:1.5px solid rgba(14,30,36,.35);
+  padding-right:.75em; line-height:1;
+}
+.banner .lead{
+  font-size:clamp(16px,2.5vh,29px);
+  font-variation-settings:"wdth" 108,"wght" 700;
+  letter-spacing:-.01em; line-height:1;
+}
+.banner .streams{display:flex;gap:.4em;flex-wrap:wrap;margin-left:auto}
+.banner .stream{
+  font-size:clamp(11px,1.6vh,16px);
+  font-variation-settings:"wght" 600;
+  border-radius:99px;padding:.2em .8em;
+  background:var(--edge);color:var(--sand);
+}
+.banner .stream[data-stream="green"]  {background:var(--bin-green);   color:#F2F7EE}
+.banner .stream[data-stream="garbage"]{background:var(--bin-garbage); color:#E8DFCE}
+.banner .stream[data-stream="glass"]  {background:var(--bin-glass);   color:#12191C}
+.banner .stream[data-stream="recycle"]{background:var(--bin-recycle); color:#F0F5FA}
+
+/* ── Header ─────────────────────────────────── */
+.head{
+  grid-area:head;
+  display:flex; align-items:baseline; justify-content:space-between;
+  gap:var(--gap); flex-wrap:wrap;
+}
+.date{
+  font-variation-settings:"wdth" 112,"wght" 600;
+  font-size:clamp(23px,4vh,48px);
+  line-height:1; letter-spacing:-.015em;
+}
+.date .dow{text-transform:uppercase;letter-spacing:.02em}
+.date .rest{color:var(--sand-dim);font-variation-settings:"wdth" 112,"wght" 400}
+.clock{
+  font-variation-settings:"wdth" 125,"wght" 500;
+  font-size:clamp(27px,5vh,58px);
+  line-height:1; letter-spacing:-.02em;
+}
+
+/* ── Person blocks ──────────────────────────── */
+.person[data-cal="a"]{grid-area:calA}
+.person[data-cal="b"]{grid-area:calB}
+.person{background:var(--panel-lit);border-top:3px solid var(--marion)}
+.person[data-cal="b"]{border-top-color:var(--aaron)}
+.who{
+  display:flex;align-items:baseline;gap:.5em;
+  padding-bottom:.5em;margin-bottom:.65em;
+  border-bottom:1px solid var(--edge-lit);
+}
+.who .name{
+  font-size:clamp(14px,2.1vh,23px);
+  font-variation-settings:"wdth" 100,"wght" 600;
+  color:var(--marion); line-height:1;
+  text-transform:uppercase; letter-spacing:.07em;
+}
+.person[data-cal="b"] .who .name{color:var(--aaron)}
+.who .count{font-size:clamp(10px,1.4vh,14px);color:var(--sand-dim);margin-left:auto}
+
+.events{display:flex;flex-direction:column;gap:calc(var(--gap)*.62);overflow:hidden}
+.ev{display:flex;flex-direction:column;gap:.08em;min-width:0}
+.ev-time{
+  font-size:clamp(12px,1.8vh,19px);
+  font-variation-settings:"wdth" 100,"wght" 500;
+  color:var(--sand-dim);
+}
+.ev-title{
+  font-size:clamp(15px,2.3vh,27px);
+  font-variation-settings:"wdth" 100,"wght" 500;
+  letter-spacing:-.01em; line-height:1.15;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.ev-loc{font-size:clamp(11px,1.5vh,16px);color:var(--sand-dim);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ev.past{opacity:.32}
+.ev.soon .ev-time{color:var(--amber)}
+.ev.more{font-size:clamp(11px,1.6vh,16px);color:var(--sand-dim)}
+.empty{font-size:clamp(13px,1.9vh,19px);color:var(--sand-dim);line-height:1.4}
+
+/* ── Rail: weather block + bus block ────────── */
+.rail{grid-area:rail;display:flex;flex-direction:column;gap:var(--gap);min-height:0}
+
+.wx-now{display:flex;align-items:baseline;gap:.45em;margin-bottom:.15em}
+.wx-temp{font-size:clamp(28px,4.6vh,52px);font-variation-settings:"wdth" 108,"wght" 500;
+  line-height:1;letter-spacing:-.03em}
+.wx-cond{font-size:clamp(12px,1.7vh,17px);color:var(--sand);line-height:1.2}
+.wx-range{font-size:clamp(11px,1.5vh,15px);color:var(--sand-dim);margin-bottom:.7em}
+.wx-hours{display:flex;justify-content:space-between;gap:.4em;
+  border-top:1px solid var(--edge);padding-top:.65em}
+.wx-hour{display:flex;flex-direction:column;align-items:center;gap:.15em;min-width:0}
+.wx-hour .h{font-size:clamp(10px,1.35vh,13px);color:var(--sand-dim)}
+.wx-hour .t{font-size:clamp(13px,1.9vh,19px);font-variation-settings:"wght" 500}
+.wx-hour .p{font-size:clamp(10px,1.35vh,13px);color:var(--sea);min-height:1.2em}
+.wx-hour .p.dry{opacity:0}
+
+.buses{display:flex;flex-direction:column;gap:.55em;overflow:hidden}
+.bus{display:grid;grid-template-columns:auto 1fr;gap:.1em .6em;align-items:baseline}
+.route{
+  font-size:clamp(14px,2.1vh,22px);font-variation-settings:"wdth" 100,"wght" 700;
+  background:var(--sea-deep);border-radius:6px;padding:.05em .45em;
+  min-width:2.4em;text-align:center;grid-row:span 2;
+}
+.dest{font-size:clamp(11px,1.5vh,15px);color:var(--sand-dim);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mins{font-size:clamp(14px,2.1vh,22px);font-variation-settings:"wdth" 100,"wght" 500;white-space:nowrap}
+.mins .then{color:var(--sand-dim);font-size:.66em;margin-left:.45em}
+.mins.imminent{color:var(--amber)}
+
+/* ── Tide band ──────────────────────────────── */
+.tide{
+  grid-area:tide;
+  background:var(--panel);border-radius:var(--r);
+  padding:clamp(9px,1.3vh,17px) clamp(12px,1.6vh,20px) clamp(7px,.9vh,11px);
+  display:flex;flex-direction:column;gap:.3em;
+  position:relative;overflow:hidden;
+}
+.tide-head{display:flex;justify-content:space-between;align-items:baseline;gap:1em}
+.tide-head h2{font-size:clamp(10px,1.4vh,13px);color:var(--sand-dim);
+  font-variation-settings:"wght" 600;margin:0;
+  text-transform:uppercase;letter-spacing:.11em}
+.tide-head h2 .station{text-transform:none;letter-spacing:0;opacity:.85}
+.tide-now{font-size:clamp(11px,1.6vh,16px);color:var(--sand-dim)}
+.tide-now b{color:var(--sand);font-variation-settings:"wght" 600}
+svg.tidechart{width:100%;height:clamp(82px,15vh,155px);display:block;overflow:visible}
+.tide-fill{fill:var(--sea);opacity:.3}
+.tide-line{fill:none;stroke:var(--sea);stroke-width:2.5;stroke-linecap:round}
+.tide-axis{stroke:var(--edge);stroke-width:1}
+.tide-tick{fill:var(--sand-dim);font-size:11px;font-family:"Archivo",sans-serif;font-variant-numeric:tabular-nums}
+.tide-ext{fill:var(--sand);font-size:12.5px;font-family:"Archivo",sans-serif;font-variation-settings:"wght" 600}
+.tide-ext-sub{fill:var(--sand-dim);font-size:10.5px;font-family:"Archivo",sans-serif}
+.tide-dot{fill:var(--sea);stroke:var(--panel);stroke-width:2}
+.nowline{stroke:var(--amber);stroke-width:2}
+.nowdot{fill:var(--amber)}
+@media (prefers-reduced-motion:no-preference){
+  .nowdot{animation:breathe 4s ease-in-out infinite}
+}
+@keyframes breathe{0%,100%{r:5;opacity:1}50%{r:7.5;opacity:.62}}
+
+.stale{position:absolute;right:clamp(12px,1.6vh,20px);bottom:clamp(6px,.9vh,10px);
+  font-size:11px;color:var(--amber);opacity:0;transition:opacity .3s}
+.stale.show{opacity:.9}
+
+/* Portrait */
+@media (max-aspect-ratio: 1/1){
+  .board{
+    grid-template-columns:1fr 1fr;
+    grid-template-rows:auto auto auto minmax(0,1fr) auto;
+    grid-template-areas:"banner banner" "head head" "rail rail" "calA calB" "tide tide";
+  }
+  .rail{flex-direction:row}
+  .rail .card{flex:1}
+}
+</style>
+</head>
+<body>
+<div class="board">
+
+  <div class="banner" id="banner">
+    <span class="label">Bins</span>
+    <span class="lead" id="banner-lead"></span>
+    <span class="streams" id="banner-streams"></span>
+  </div>
+
+  <header class="head">
+    <div class="date"><span class="dow" id="dow">—</span> <span class="rest" id="datestr"></span></div>
+    <div class="clock" id="clock">--:--</div>
+  </header>
+
+  <section class="card person" data-cal="a">
+    <div class="who"><span class="name" id="name-a">Marion</span><span class="count" id="count-a"></span></div>
+    <div class="events" id="events-a"></div>
+  </section>
+
+  <section class="card person" data-cal="b">
+    <div class="who"><span class="name" id="name-b">Aaron</span><span class="count" id="count-b"></span></div>
+    <div class="events" id="events-b"></div>
+  </section>
+
+  <aside class="rail">
+    <section class="card" id="wx-card">
+      <h2>Weather</h2>
+      <div class="wx-now">
+        <span class="wx-temp" id="wx-temp">–°</span>
+        <span class="wx-cond" id="wx-cond"></span>
+      </div>
+      <div class="wx-range" id="wx-range"></div>
+      <div class="wx-hours" id="wx-hours"></div>
+    </section>
+
+    <section class="card" style="flex:1">
+      <h2>Next buses</h2>
+      <div class="buses" id="buses"></div>
+    </section>
+  </aside>
+
+  <section class="tide">
+    <div class="tide-head">
+      <h2 id="tide-station">Tides</h2>
+      <div class="tide-now" id="tide-now"></div>
+    </div>
+    <svg class="tidechart" id="tidechart" preserveAspectRatio="none"></svg>
+    <div class="stale" id="stale">Data hasn’t refreshed since <span id="stale-time"></span></div>
+  </section>
+
+</div>
+
+<script>
+/* ══════════════════════════════════════════════
+   CONFIG
+   ══════════════════════════════════════════════ */
+const CONFIG = {
+  dataUrl:  './data.json',
+  busUrl:   null,                 // 'https://kitchen-bus.<you>.workers.dev/'
+  dataEvery: 10 * 60 * 1000,
+  busEvery:  2  * 60 * 1000,
+  quietHours: [22, 6],
+  people: { a: 'Marion', b: 'Aaron' },
+  maxPerColumn: 6,
+  hoursAhead: 4                   // how many hourly steps the weather block shows
+};
+
+/* ══════════════════════════════════════════════
+   SAMPLE DATA — the shape data.json must return
+   ══════════════════════════════════════════════ */
+const SAMPLE = {
+  generated: new Date().toISOString(),
+  weather: {
+    temp: 14, condition: 'Light rain', high: 17, low: 11,
+    hourly: [
+      { time: iso(0,14,0), temp: 14, pop: 70 },
+      { time: iso(0,15,0), temp: 15, pop: 40 },
+      { time: iso(0,16,0), temp: 15, pop: 10 },
+      { time: iso(0,17,0), temp: 14, pop: 0  },
+      { time: iso(0,18,0), temp: 13, pop: 0  },
+      { time: iso(0,19,0), temp: 12, pop: 20 }
+    ]
+  },
+  events: [
+    { start: iso(0, 8,30), end: iso(0, 9,30), title: 'Ballet — beginners', cal: 'a', location: 'Harbour Dance' },
+    { start: iso(0,11, 0), end: iso(0,12, 0), title: 'Studio block',       cal: 'a', location: '' },
+    { start: iso(0,14, 0), end: iso(0,15, 0), title: 'Client review call', cal: 'a', location: '' },
+    { start: iso(0,19, 0), end: iso(0,21, 0), title: 'Life drawing',       cal: 'a', location: 'Basic Inquiry' },
+    { start: iso(0, 9,15), end: iso(0,10, 0), title: 'Standup',            cal: 'b', location: '' },
+    { start: iso(0,11,30), end: iso(0,12,15),title: 'Dentist',             cal: 'b', location: 'Broadway' },
+    { start: iso(0,18,30), end: iso(0,20, 0),title: 'Dinner at Amy’s',     cal: 'b', location: 'Dunbar' },
+    { start: iso(1, 9, 0), end: iso(1,10, 0),title: 'Market load-in',      cal: 'a', location: 'PNE Forum' }
+  ],
+  tides: {
+    station: 'Point Atkinson',
+    extremes: [
+      { time: iso(0, 3,42), height: 1.2, type: 'low'  },
+      { time: iso(0,10,18), height: 4.4, type: 'high' },
+      { time: iso(0,16, 5), height: 2.6, type: 'low'  },
+      { time: iso(0,22,31), height: 4.9, type: 'high' },
+      { time: iso(1, 4,50), height: 1.0, type: 'low'  }
+    ]
+  },
+  bins: { date: iso(1, 7, 0), streams: ['Green bin', 'Garbage'] }
+};
+
+const SAMPLE_BUSES = [
+  { route: '4',  dest: 'UBC',         mins: [3, 14, 26] },
+  { route: '84', dest: 'UBC Express', mins: [7, 22] },
+  { route: '2',  dest: 'Downtown',    mins: [11, 25] }
+];
+
+function iso(dayOffset, h, m){
+  const d = new Date();
+  d.setDate(d.getDate() + dayOffset);
+  d.setHours(h, m, 0, 0);
+  return d.toISOString();
+}
+
+let DATA = SAMPLE, BUSES = SAMPLE_BUSES, lastGood = new Date();
+
+/* ══════════════════════════════════════════════
+   Fetching
+   ══════════════════════════════════════════════ */
+async function loadData(){
+  if (!CONFIG.dataUrl) return;
+  try {
+    const r = await fetch(CONFIG.dataUrl + '?t=' + Date.now(), { cache: 'no-store' });
+    if (!r.ok) throw new Error(r.status);
+    const j = await r.json();
+    if (!j.events) throw new Error('unexpected shape');
+    DATA = j; lastGood = new Date(); markStale(false);
+  } catch (e) {
+    markStale(true);
+  }
+  renderAll();
+}
+
+async function loadBuses(){
+  if (!CONFIG.busUrl) return;
+  try {
+    const r = await fetch(CONFIG.busUrl + '?t=' + Date.now(), { cache: 'no-store' });
+    if (!r.ok) throw new Error(r.status);
+    BUSES = await r.json();
+  } catch (e) { /* keep the last departures on screen */ }
+  renderBuses();
+}
+
+function markStale(on){
+  document.getElementById('stale').classList.toggle('show', !!on);
+  document.getElementById('stale-time').textContent = fmtTime(lastGood);
+}
+
+/* ══════════════════════════════════════════════
+   Helpers
+   ══════════════════════════════════════════════ */
+const fmtTime = d => d.toLocaleTimeString('en-CA', { hour: 'numeric', minute: '2-digit', hour12: false });
+const fmtHour = d => d.toLocaleTimeString('en-CA', { hour: 'numeric', hour12: false }) + 'h';
+const startOfDay = d => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
+
+/* The city's calendar words these inconsistently ("Green Bin", "Food scraps",
+   "Mixed recycling"), so match loosely rather than on an exact string. */
+function streamKey(name){
+  const s = String(name || '').toLowerCase();
+  if (s.includes('green') || s.includes('food') || s.includes('yard') || s.includes('organic')) return 'green';
+  if (s.includes('glass')) return 'glass';
+  if (s.includes('recycl')) return 'recycle';
+  if (s.includes('garbage') || s.includes('trash') || s.includes('waste')) return 'garbage';
+  return '';
+}
+
+/* ══════════════════════════════════════════════
+   Render
+   ══════════════════════════════════════════════ */
+function renderClock(){
+  const now = new Date();
+  document.getElementById('clock').textContent = fmtTime(now);
+  document.getElementById('dow').textContent = now.toLocaleDateString('en-CA', { weekday: 'long' });
+  document.getElementById('datestr').textContent =
+    now.toLocaleDateString('en-CA', { day: 'numeric', month: 'long' });
+  const h = now.getHours(), [qs, qe] = CONFIG.quietHours;
+  document.body.classList.toggle('night', h >= qs || h < qe);
+}
+
+function renderWeather(){
+  const w = DATA.weather || {};
+  document.getElementById('wx-temp').textContent =
+    (w.temp != null ? Math.round(w.temp) : '–') + '°';
+  document.getElementById('wx-cond').textContent = w.condition || '';
+
+  const range = document.getElementById('wx-range');
+  range.textContent = (w.high != null && w.low != null)
+    ? `High ${Math.round(w.high)}°  ·  Low ${Math.round(w.low)}°`
+    : '';
+
+  // Next few hours, from now forward.
+  const host = document.getElementById('wx-hours');
+  host.innerHTML = '';
+  const now = Date.now();
+  const hours = (w.hourly || [])
+    .map(h => ({ ...h, d: new Date(h.time) }))
+    .filter(h => h.d.getTime() >= now - 30 * 60e3)
+    .slice(0, CONFIG.hoursAhead);
+
+  if (!hours.length){ host.style.display = 'none'; return; }
+  host.style.display = 'flex';
+
+  for (const h of hours){
+    const cell = document.createElement('div');
+    cell.className = 'wx-hour';
+    const wet = h.pop != null && h.pop >= 20;
+    cell.innerHTML =
+      `<span class="h">${fmtHour(h.d)}</span>
+       <span class="t">${Math.round(h.temp)}°</span>
+       <span class="p${wet ? '' : ' dry'}">${h.pop != null ? Math.round(h.pop) + '%' : ''}</span>`;
+    host.appendChild(cell);
+  }
+}
+
+/* One block per person, today only. */
+function renderPerson(cal){
+  const now = new Date();
+  const today = startOfDay(now);
+  const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
+
+  document.getElementById('name-' + cal).textContent = CONFIG.people[cal];
+
+  const list = (DATA.events || [])
+    .filter(e => (e.cal || 'a') === cal)
+    .map(e => ({ ...e, s: new Date(e.start), e_: e.end ? new Date(e.end) : null }))
+    .filter(e => e.s >= today && e.s < tomorrow)
+    .sort((a, b) => a.s - b.s);
+
+  const host = document.getElementById('events-' + cal);
+  const count = document.getElementById('count-' + cal);
+  host.innerHTML = '';
+
+  const remaining = list.filter(e => (e.e_ || e.s) >= now).length;
+  count.textContent = list.length ? (remaining ? remaining + ' left today' : 'all done') : '';
+
+  if (!list.length){
+    host.innerHTML = '<p class="empty">Nothing on today.</p>';
+    return;
+  }
+
+  const shown = list.slice(0, CONFIG.maxPerColumn);
+  for (const e of shown){
+    const mins = (e.s - now) / 60000;
+    const over = e.e_ ? e.e_ < now : mins < -1;
+    const row = document.createElement('div');
+    row.className = 'ev' + (over ? ' past' : (mins <= 45 && mins > -1 ? ' soon' : ''));
+    row.innerHTML =
+      `<span class="ev-time">${fmtTime(e.s)}${e.e_ ? '–' + fmtTime(e.e_) : ''}</span>
+       <span class="ev-title">${esc(e.title)}</span>
+       ${e.location ? `<span class="ev-loc">${esc(e.location)}</span>` : ''}`;
+    host.appendChild(row);
+  }
+  if (list.length > shown.length){
+    const more = document.createElement('div');
+    more.className = 'ev more';
+    more.textContent = '+ ' + (list.length - shown.length) + ' more';
+    host.appendChild(more);
+  }
+}
+
+function renderBuses(){
+  const host = document.getElementById('buses');
+  host.innerHTML = '';
+  if (!BUSES || !BUSES.length){
+    host.innerHTML = '<p class="empty">No departures right now.</p>';
+    return;
+  }
+  for (const b of BUSES){
+    const mins = (b.mins || []).filter(m => m >= 0).slice(0, 3);
+    if (!mins.length) continue;
+    const row = document.createElement('div');
+    row.className = 'bus';
+    row.innerHTML =
+      `<span class="route">${esc(b.route)}</span>
+       <span class="mins${mins[0] <= 5 ? ' imminent' : ''}">${mins[0] === 0 ? 'now' : mins[0] + ' min'}
+         ${mins.length > 1 ? `<span class="then">${mins.slice(1).join(', ')}</span>` : ''}</span>
+       <span class="dest">${esc(b.dest || '')}</span>`;
+    host.appendChild(row);
+  }
+}
+
+/* Banner appears only the day before and the day of collection. */
+function renderBins(){
+  const el = document.getElementById('banner');
+  const lead = document.getElementById('banner-lead');
+  const streams = document.getElementById('banner-streams');
+  const b = DATA.bins;
+
+  el.classList.remove('show');
+  streams.innerHTML = '';
+  if (!b || !b.date) return;
+
+  const days = Math.round((startOfDay(new Date(b.date)) - startOfDay(new Date())) / 86400000);
+  if (days < 0 || days > 1) return;
+
+  lead.textContent = days === 1 ? 'Out tonight' : 'Out this morning';
+  for (const s of b.streams || []){
+    const tag = document.createElement('span');
+    tag.className = 'stream';
+    tag.dataset.stream = streamKey(s);
+    tag.textContent = s;
+    streams.appendChild(tag);
+  }
+  el.classList.add('show');
+}
+
+/* ── Tide curve ───────────────────────────────── */
+function tideHeightAt(t, ext){
+  for (let i = 0; i < ext.length - 1; i++){
+    const a = ext[i], b = ext[i + 1];
+    if (t >= a.t && t <= b.t){
+      const f = (t - a.t) / (b.t - a.t);
+      return a.h + (b.h - a.h) * (1 - Math.cos(Math.PI * f)) / 2;
+    }
+  }
+  return t < ext[0].t ? ext[0].h : ext[ext.length - 1].h;
+}
+
+function renderTide(){
+  const svg = document.getElementById('tidechart');
+  const src = DATA.tides;
+  svg.innerHTML = '';
+  if (!src || !src.extremes || src.extremes.length < 2) return;
+
+  document.getElementById('tide-station').innerHTML =
+    'Tides <span class="station">— ' + esc(src.station || 'Jericho') + '</span>';
+
+  const ext = src.extremes
+    .map(e => ({ t: new Date(e.time).getTime(), h: e.height, type: e.type, d: new Date(e.time) }))
+    .sort((a, b) => a.t - b.t);
+
+  const now = new Date();
+  const t0 = Math.max(startOfDay(now).getTime(), ext[0].t);
+  const t1 = Math.min(t0 + 24 * 3600e3, ext[ext.length - 1].t);
+
+  const W = 1000, H = 210, padT = 46, padB = 34;
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+
+  const hs = ext.map(e => e.h);
+  const hMin = Math.min(...hs) - 0.3, hMax = Math.max(...hs) + 0.3;
+  const x = t => ((t - t0) / (t1 - t0)) * W;
+  const y = h => padT + (1 - (h - hMin) / (hMax - hMin)) * (H - padT - padB);
+
+  let d = '';
+  for (let i = 0; i <= 200; i++){
+    const t = t0 + (t1 - t0) * (i / 200);
+    d += (i ? 'L' : 'M') + x(t).toFixed(1) + ' ' + y(tideHeightAt(t, ext)).toFixed(1) + ' ';
+  }
+  add('path', { d: d + `L${W} ${H - padB} L0 ${H - padB} Z`, class: 'tide-fill' });
+  add('path', { d, class: 'tide-line' });
+  add('line', { x1: 0, y1: H - padB, x2: W, y2: H - padB, class: 'tide-axis' });
+
+  for (let t = ceilTo(t0, 3); t < t1; t += 3 * 3600e3){
+    add('text', { x: x(t), y: H - padB + 17, class: 'tide-tick', 'text-anchor': 'middle' },
+        fmtTime(new Date(t)));
+  }
+
+  // Labels always above their point, so a low near the axis can't collide
+  // with the hour ticks below it.
+  for (const e of ext){
+    if (e.t < t0 || e.t > t1) continue;
+    const xx = x(e.t), yy = y(e.h);
+    const anchor = xx < 55 ? 'start' : (xx > W - 55 ? 'end' : 'middle');
+    add('circle', { cx: xx, cy: yy, r: 4, class: 'tide-dot' });
+    add('text', { x: xx, y: yy - 24, class: 'tide-ext', 'text-anchor': anchor }, fmtTime(e.d));
+    add('text', { x: xx, y: yy - 12, class: 'tide-ext-sub', 'text-anchor': anchor },
+        (e.type === 'high' ? 'high ' : 'low ') + e.h.toFixed(1) + ' m');
+  }
+
+  const tn = now.getTime();
+  if (tn >= t0 && tn <= t1){
+    const hNow = tideHeightAt(tn, ext);
+    add('line', { x1: x(tn), y1: padT - 30, x2: x(tn), y2: H - padB, class: 'nowline' });
+    add('circle', { cx: x(tn), cy: y(hNow), r: 5, class: 'nowdot' });
+    const next = ext.find(e => e.t > tn);
+    document.getElementById('tide-now').innerHTML = next
+      ? `Now <b>${hNow.toFixed(1)} m</b> · ${next.type === 'high' ? 'rising to' : 'falling to'} <b>${next.h.toFixed(1)} m</b> at <b>${fmtTime(next.d)}</b>`
+      : `Now <b>${hNow.toFixed(1)} m</b>`;
+  }
+
+  function add(tag, attrs, text){
+    const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+    for (const k in attrs) el.setAttribute(k, attrs[k]);
+    if (text != null) el.textContent = text;
+    svg.appendChild(el);
+  }
+}
+
+const ceilTo = (t, hrs) => { const d = new Date(t); d.setMinutes(0,0,0);
+  d.setHours(Math.ceil(d.getHours() / hrs) * hrs); return d.getTime(); };
+
+function renderAll(){
+  renderClock(); renderWeather(); renderBins();
+  renderPerson('a'); renderPerson('b');
+  renderBuses(); renderTide();
+}
+
+/* ══════════════════════════════════════════════
+   Loop
+   ══════════════════════════════════════════════ */
+renderAll(); loadData(); loadBuses();
+
+setInterval(renderClock, 1000);
+setInterval(() => {
+  renderPerson('a'); renderPerson('b'); renderBins(); renderWeather(); renderTide();
+}, 60 * 1000);
+setInterval(loadData, CONFIG.dataEvery);
+setInterval(loadBuses, CONFIG.busEvery);
+
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden){ renderAll(); loadData(); loadBuses(); }
+});
+window.addEventListener('pageshow', renderAll);
+setInterval(() => { if (new Date().getHours() === 4) location.reload(); }, 30 * 60 * 1000);
+</script>
+</body>
+</html>
