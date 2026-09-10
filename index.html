@@ -25,8 +25,8 @@
   --sand:      #E8DFCE;
   --sand-dim:  #93A7AC;
   --amber:     #F0A868;
-  --marion:    #7FC9C0;
-  --aaron:     #E5849B;
+  --person-a:    #7FC9C0;
+  --person-b:     #E5849B;
 
   /* Calendar blocks sit a step lighter than the other cards */
   --panel-lit: #22404B;
@@ -148,8 +148,8 @@ body.night{opacity:.62}
 /* ── Person blocks ──────────────────────────── */
 .person[data-cal="a"]{grid-area:calA}
 .person[data-cal="b"]{grid-area:calB}
-.person{background:var(--panel-lit);border-top:3px solid var(--marion)}
-.person[data-cal="b"]{border-top-color:var(--aaron)}
+.person{background:var(--panel-lit);border-top:3px solid var(--person-a)}
+.person[data-cal="b"]{border-top-color:var(--person-b)}
 .who{
   display:flex;align-items:baseline;gap:.5em;
   padding-bottom:.5em;margin-bottom:.65em;
@@ -158,10 +158,10 @@ body.night{opacity:.62}
 .who .name{
   font-size:clamp(14px,2.1vh,23px);
   font-variation-settings:"wdth" 100,"wght" 600;
-  color:var(--marion); line-height:1;
+  color:var(--person-a); line-height:1;
   text-transform:uppercase; letter-spacing:.07em;
 }
-.person[data-cal="b"] .who .name{color:var(--aaron)}
+.person[data-cal="b"] .who .name{color:var(--person-b)}
 .who .count{font-size:clamp(10px,1.4vh,14px);color:var(--sand-dim);margin-left:auto}
 
 .events{display:flex;flex-direction:column;gap:calc(var(--gap)*.62);overflow:hidden}
@@ -266,7 +266,7 @@ svg.tidechart{width:100%;height:clamp(82px,15vh,155px);display:block;overflow:vi
 #refresh:active{transform:scale(.97);background:var(--panel)}
 #refresh:focus-visible{outline:2px solid var(--amber);outline-offset:3px}
 #refresh[disabled]{opacity:.55;cursor:default}
-#refresh.done{border-color:var(--marion);color:var(--marion)}
+#refresh.done{border-color:var(--person-a);color:var(--person-a)}
 .synced{font-size:clamp(11px,1.5vh,14px);color:var(--sand-dim)}
 
 /* Portrait */
@@ -296,12 +296,12 @@ svg.tidechart{width:100%;height:clamp(82px,15vh,155px);display:block;overflow:vi
   </header>
 
   <section class="card person" data-cal="a">
-    <div class="who"><span class="name" id="name-a">Marion</span><span class="count" id="count-a"></span></div>
+    <div class="who"><span class="name" id="name-a">—</span><span class="count" id="count-a"></span></div>
     <div class="events" id="events-a"></div>
   </section>
 
   <section class="card person" data-cal="b">
-    <div class="who"><span class="name" id="name-b">Aaron</span><span class="count" id="count-b"></span></div>
+    <div class="who"><span class="name" id="name-b">—</span><span class="count" id="count-b"></span></div>
     <div class="events" id="events-b"></div>
   </section>
 
@@ -349,16 +349,29 @@ const CONFIG = {
   busEvery:  3  * 60 * 1000,      // 3 min keeps us inside TransLink's 1000/day
   busHours:  [6, 23],             // don't poll for buses overnight
   quietHours: [22, 6],
-  people: { a: 'Marion', b: 'Aaron' },
+  // Generic fallback only — shown before first sync, or if the Worker's
+  // response ever omits `people`. Real names never live in this file; the
+  // Worker's /data response supplies them (see .env.example / README), so
+  // no one who only has the public source or the un-keyed page ever sees
+  // them, and someone with the key does.
+  people: { a: 'A', b: 'B' },
   maxPerColumn: 6,
   hoursAhead: 4                   // how many hourly steps the weather block shows
 };
 
 /* ══════════════════════════════════════════════
-   SAMPLE DATA — the shape the Worker must return from /data
+   DEMO DATA — the shape the Worker must return from /data.
+
+   This is documentation, not a fallback: it only ever loads when the page
+   is opened with ?demo=1, for previewing the board's layout without a
+   live Worker behind it. The board's real default state is empty (below) —
+   it never shows made-up events on the actual kitchen display.
    ══════════════════════════════════════════════ */
-const SAMPLE = {
+const DEMO = new URLSearchParams(location.search).get('demo') === '1';
+
+const DEMO_DATA = {
   generated: new Date().toISOString(),
+  people: { a: 'Person A', b: 'Person B' },
   weather: {
     temp: 14, condition: 'Light rain', high: 17, low: 11,
     hourly: [
@@ -377,7 +390,7 @@ const SAMPLE = {
     { start: iso(0,19, 0), end: iso(0,21, 0), title: 'Life drawing',       cal: 'a' },
     { start: iso(0, 9,15), end: iso(0,10, 0), title: 'Standup',            cal: 'b' },
     { start: iso(0,11,30), end: iso(0,12,15),title: 'Dentist',             cal: 'b' },
-    { start: iso(0,18,30), end: iso(0,20, 0),title: 'Dinner at Amy’s',     cal: 'b' },
+    { start: iso(0,18,30), end: iso(0,20, 0),title: 'Dinner out',          cal: 'b' },
     { start: iso(1, 9, 0), end: iso(1,10, 0),title: 'Market load-in',      cal: 'a' }
   ],
   tides: {
@@ -393,7 +406,7 @@ const SAMPLE = {
   bins: { date: iso(1, 7, 0), streams: ['Green bin', 'Garbage'] }
 };
 
-const SAMPLE_BUSES = [
+const DEMO_BUSES = [
   { route: '4',  dest: 'UBC',         mins: [3, 14, 26] },
   { route: '84', dest: 'UBC Express', mins: [7, 22] },
   { route: '2',  dest: 'Downtown',    mins: [11, 25] }
@@ -406,7 +419,14 @@ function iso(dayOffset, h, m){
   return d.toISOString();
 }
 
-let DATA = SAMPLE, BUSES = SAMPLE_BUSES, lastGood = new Date();
+/* Real default: nothing synced yet. Render functions below already treat
+   missing/empty fields as "no data" (empty column, no banner, no tide
+   curve) rather than guessing — so this never renders anything fake. */
+const EMPTY_DATA = { weather: {}, events: [], tides: null, bins: null, people: null };
+
+let DATA = DEMO ? DEMO_DATA : EMPTY_DATA;
+let BUSES = DEMO ? DEMO_BUSES : [];
+let lastGood = DEMO ? new Date() : null;
 
 /* ══════════════════════════════════════════════
    Access key
@@ -472,7 +492,7 @@ async function loadBuses(){
 
 function markStale(on){
   document.getElementById('stale').classList.toggle('show', !!on);
-  document.getElementById('stale-time').textContent = fmtTime(lastGood);
+  document.getElementById('stale-time').textContent = lastGood ? fmtTime(lastGood) : 'never';
 }
 
 /* ══════════════════════════════════════════════
@@ -548,7 +568,8 @@ function renderPerson(cal){
   const today = startOfDay(now);
   const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
 
-  document.getElementById('name-' + cal).textContent = CONFIG.people[cal];
+  document.getElementById('name-' + cal).textContent =
+    (DATA.people && DATA.people[cal]) || CONFIG.people[cal];
 
   const list = (DATA.events || [])
     .filter(e => (e.cal || 'a') === cal)
@@ -564,7 +585,9 @@ function renderPerson(cal){
   count.textContent = list.length ? (remaining ? remaining + ' left today' : 'all done') : '';
 
   if (!list.length){
-    host.innerHTML = '<p class="empty">Nothing on today.</p>';
+    host.innerHTML = lastGood
+      ? '<p class="empty">Nothing on today.</p>'
+      : '<p class="empty">Not synced yet.</p>';
     return;
   }
 
@@ -594,7 +617,9 @@ function renderBuses(){
   const host = document.getElementById('buses');
   host.innerHTML = '';
   if (!BUSES || !BUSES.length){
-    host.innerHTML = '<p class="empty">No departures right now.</p>';
+    host.innerHTML = lastGood
+      ? '<p class="empty">No departures right now.</p>'
+      : '<p class="empty">Not synced yet.</p>';
     return;
   }
   for (const b of BUSES){
@@ -735,7 +760,7 @@ const syncedEl = document.getElementById('synced');
 let syncing = false;
 
 function showSynced(){
-  syncedEl.textContent = 'Last synced ' + fmtTime(lastGood);
+  syncedEl.textContent = lastGood ? 'Last synced ' + fmtTime(lastGood) : 'Not synced yet';
 }
 
 async function refreshAll(){
@@ -766,7 +791,10 @@ btn.addEventListener('click', refreshAll);
 /* ══════════════════════════════════════════════
    Loop
    ══════════════════════════════════════════════ */
-if (!KEY){
+if (!DEMO && !KEY){
+  // No board to run without a key — replace the page and stop here. The
+  // clock/render intervals below all target elements this just removed,
+  // so they must never be scheduled in this branch.
   document.body.innerHTML =
     '<div style="height:100dvh;display:flex;align-items:center;justify-content:center;' +
     'text-align:center;padding:2rem;line-height:1.5;font-size:clamp(14px,2.2vh,20px);' +
@@ -774,21 +802,30 @@ if (!KEY){
     'Open it once with <span style="color:#E8DFCE">?key=</span> and your key on the end ' +
     'of the address.</div>';
 } else {
-  renderAll(); loadData(); loadBuses(); showSynced();
+  if (DEMO){ renderAll(); showSynced(); }
+  else { renderAll(); loadData(); loadBuses(); showSynced(); }
+
+  setInterval(renderClock, 1000);
+  setInterval(() => {
+    renderPerson('a'); renderPerson('b'); renderBins(); renderWeather(); renderTide();
+  }, 60 * 1000);
+
+  if (!DEMO){
+    setInterval(() => { loadData().then(showSynced); }, CONFIG.dataEvery);
+    setInterval(loadBuses, CONFIG.busEvery);
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden){ renderAll(); loadData(); loadBuses(); }
+    });
+  }
+  window.addEventListener('pageshow', renderAll);
+
+  // Once-a-day reload at 4am to clear any stuck state. Checked every 30min,
+  // so only fire in the first half of the hour or it double-fires at 4:00 and 4:30.
+  setInterval(() => {
+    const n = new Date();
+    if (n.getHours() === 4 && n.getMinutes() < 30) location.reload();
+  }, 30 * 60 * 1000);
 }
-
-setInterval(renderClock, 1000);
-setInterval(() => {
-  renderPerson('a'); renderPerson('b'); renderBins(); renderWeather(); renderTide();
-}, 60 * 1000);
-setInterval(() => { loadData().then(showSynced); }, CONFIG.dataEvery);
-setInterval(loadBuses, CONFIG.busEvery);
-
-document.addEventListener('visibilitychange', () => {
-  if (!document.hidden){ renderAll(); loadData(); loadBuses(); }
-});
-window.addEventListener('pageshow', renderAll);
-setInterval(() => { if (new Date().getHours() === 4) location.reload(); }, 30 * 60 * 1000);
 </script>
 </body>
 </html>
