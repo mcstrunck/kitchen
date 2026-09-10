@@ -1,0 +1,7 @@
+# Real secrets — never commit
+.env
+.env.*
+!.env.example
+.dev.vars
+
+.DS_Store
